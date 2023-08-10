@@ -1,4 +1,97 @@
 ﻿@page "/"
 
-<h1>Hello, world!</h1>
+@using BlazorAlunos.Services
+@using BlazorAlunos.Model
 
+@inject IAlunoService alunoService
+@inject MudBlazor.ISnackbar snackBar
+
+<MudCard Elevation="25">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6" Color="Color.Success">Incluir - Editar Alunos</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTextField @bind-Value="aluno.Nome" Label="Nome" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="aluno.Email" Label="Email" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudNumericField @bind-Value="aluno.Idade" Label="Idade" Variant="Variant.Text" Margin="Margin.Normal"></MudNumericField>
+        <br />
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Save">Salvar Aluno</MudButton>
+    </MudCardContent>
+</MudCard>
+<br />
+<MudTable Elevation="25" Items="alunos" Filter="new Func<Aluno, bool>(Search)" @bind-aluno="aluno">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Alunos</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString" Placeholder="Procurar alunos..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>Nome</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Idade</MudTh>
+        <MudTh>Operação</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id">@context.Id</MudTd>
+        <MudTd DataLabel="Nome">@context.Nome</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Idade">@context.Idade</MudTd>
+        <MudTd DataLabel="">
+            <MudFab @onclick="@(()=>Edit(@context.Id))" Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
+            <MudFab @onclick="@(()=>Delete(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code{
+    private bool hover = false;
+    private string searchString = "";
+
+    private Aluno aluno = new Aluno();
+    private IEnumerable<Aluno> alunos = new List<Aluno>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetAlunos();
+    }
+
+    private async Task<IEnumerable<Aluno>> GetAlunos()
+    {
+        alunos = await alunoService.GetAlunos();
+        return alunos;
+    }
+
+    private bool Search(Aluno aluno)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (aluno.Nome.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            || aluno.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private async Task Save()
+    {
+        await alunoService.SaveAluno(aluno);
+        aluno = new Aluno();
+        snackBar.Add("Aluno Salvo.", Severity.Success);
+        await GetAlunos();
+    }
+
+    private void Edit(int id)
+    {
+        aluno = alunos.FirstOrDefault(c => c.Id == id);
+    }
+
+    private async Task Delete(int id)
+    {
+        await alunoService.DeleteAluno(id);
+        snackBar.Add("Aluno Exccluído.", Severity.Success);
+        await GetAlunos();
+    }
+}
